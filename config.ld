@@ -1,6 +1,6 @@
-project='[repo-name]'
-title='[module-name] docs'
-description='[short-description]'
+project='homie45'
+title='homie45 docs'
+description='Homie bridge for Homie 4 devices to Homie 5'
 
 format='markdown'
 use_markdown_titles = true

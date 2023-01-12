@@ -1,8 +1,8 @@
-local package_name = "[module-name]"
+local package_name = "homie45"
 local package_version = "scm"
 local rockspec_revision = "1"
-local github_account_name = "[github-account-name]"
-local github_repo_name = "[repo-name]"
+local github_account_name = "Tieske"
+local github_repo_name = "homie45"
 
 
 package = package_name
@@ -15,9 +15,9 @@ source = {
 }
 
 description = {
-  summary = "[short-description]",
+  summary = "Homie bridge for Homie 4 devices to Homie 5",
   detailed = [[
-    [short-description]
+    Homie bridge for Homie 4 devices to Homie 5
   ]],
   license = "MIT",
   homepage = "https://github.com/"..github_account_name.."/"..github_repo_name,
@@ -31,17 +31,17 @@ build = {
   type = "builtin",
 
   modules = {
-    ["[module-name].init"] = "src/[module-name]/init.lua",
+    ["homie45.init"] = "src/homie45/init.lua",
   },
 
   install = {
     bin = {
-      ["[module-name]"] = "bin/[module-name].lua",
+      ["homie45"] = "bin/homie45.lua",
     }
   },
 
   copy_directories = {
-    -- can be accessed by `luarocks [module-name] doc` from the commandline
+    -- can be accessed by `luarocks homie45 doc` from the commandline
     "docs",
   },
 }

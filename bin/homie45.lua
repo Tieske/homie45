@@ -2,12 +2,12 @@
 
 --- CLI application.
 -- Description goes here.
--- @script [module-name]
+-- @script homie45
 -- @usage
 -- # start the application from a shell
--- [module-name] --some --options=here
+-- homie45 --some --options=here
 
-print("Welcome to the [module-name] CLI, echoing arguments:")
+print("Welcome to the homie45 CLI, echoing arguments:")
 for i, val in ipairs(arg) do
   print(i .. ":", val)
 end
