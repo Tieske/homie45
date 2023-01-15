@@ -39,6 +39,10 @@ jobs:
         run: |
           make dev
           luarocks install luacov-coveralls
+          luarocks install luasec
+          luarocks install Tieske/luamqtt --dev
+          luarocks install homie --dev
+          luarocks install luabitop
 
       - name: test
         run: |

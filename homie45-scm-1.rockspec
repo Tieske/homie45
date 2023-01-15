@@ -25,6 +25,11 @@ description = {
 
 dependencies = {
   "lua >= 5.1, < 5.5",
+  "copas >= 4.3, < 5",
+  --"luamqtt",  -- do: "luarocks install Tieske/luamqtt --dev" for now
+  "lualogging >= 1.6",
+  "penlight ~> 1",
+  "lua-cjson",
 }
 
 build = {
@@ -32,11 +37,12 @@ build = {
 
   modules = {
     ["homie45.init"] = "src/homie45/init.lua",
+    ["homie45.device"] = "src/homie45/device.lua",
   },
 
   install = {
     bin = {
-      ["homie45"] = "bin/homie45.lua",
+      ["homie45bridge"] = "bin/homie45bridge.lua",
     }
   },
 
