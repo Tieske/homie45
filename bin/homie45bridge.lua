@@ -8,6 +8,11 @@
 -- For configuring the log, use LuaLogging environment variable prefix `"HOMIE_LOG_"`, see
 -- "logLevel" in the example below.
 --
+-- If device descriptions are incomplete then try increasing the `subscribe_delay`.
+-- This is the delay (in milliseconds) between subscribing to
+-- discovered devices. This prevents too many topics being queued at once MQTT-server-side such
+-- that they might get dropped.
+--
 -- A clean option to quickly try the bridge is to use Docker. The git repo
 -- has a `Dockerfile` and a `docker.sh` script to try this.
 --
@@ -18,6 +23,7 @@
 -- export HOMIE_MQTT_ID="homie45-bridge"      # default: "homie45-bridge-xxxxxxx"
 -- export HOMIE_DOMAIN4="homie"               # default: "homie"
 -- export HOMIE_DOMAIN5="homie5"              # default: "homie5"
+-- export HOMIE_SUBSCRIBE_DELAY=5000          # default: 1000
 -- export HOMIE_LOG_LOGLEVEL="debug"          # default: "info"
 --
 -- # start the application
@@ -52,6 +58,7 @@ local opts = {
   domain4 = os.getenv("HOMIE_DOMAIN4") or "homie/",
   domain5 = os.getenv("HOMIE_DOMAIN5") or "homie5/",
   id = os.getenv("HOMIE_MQTT_ID") or ("homie45-bridge-%07x"):format(math.random(1, 0xFFFFFFF)),
+  subscribe_delay = os.getenv("HOMIE_SUBSCRIBE_DELAY") or 1000,
 }
 
 logger:info("Bridge configuration:")
@@ -59,6 +66,7 @@ logger:info("HOMIE_MQTT_URI: %s", opts.uri)
 logger:info("HOMIE_DOMAIN4: %s", opts.domain4)
 logger:info("HOMIE_DOMAIN5: %s", opts.domain5)
 logger:info("HOMIE_MQTT_ID: %s", opts.id)
+logger:info("HOMIE_SUBSCRIBE_DELAY: %s", tostring(opts.subscribe_delay))
 
 
 copas(function()

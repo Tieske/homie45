@@ -42,6 +42,7 @@ function Device.new(opts, empty)
   self.seen_ready = false  -- the $state topic has been "ready" at least once
   self.go_online_at = nil
   self.go_online_timer = nil
+  self.started = nil
 
   -- create patterns for message matching
   self.DEVICE_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. self.id .. "/+")
@@ -65,6 +66,8 @@ function Device:start()
     -- callback = function(...) -- TODO: add for error checking
     -- end,
   }
+  self.started = true
+  self:check_complete()
 end
 
 
@@ -207,6 +210,10 @@ end
 
 
 function Device:check_complete()
+  if not self.started then
+    return
+  end
+
   local dev4 = self.device4
   if dev4["$state"] == "ready" then
     self.seen_ready = true
