@@ -39,7 +39,6 @@ function Device.new(opts, empty)
   self.device4 = {}
   self.description_complete = false
   self.device5 = {} -- table representation of v5 device
-  self.seen_ready = false  -- the $state topic has been "ready" at least once
   self.go_online_at = nil
   self.go_online_timer = nil
   self.started = nil
@@ -215,11 +214,8 @@ function Device:check_complete()
   end
 
   local dev4 = self.device4
-  if dev4["$state"] == "ready" then
-    self.seen_ready = true
-  end
 
-  if self.description_complete or not self.seen_ready then
+  if self.description_complete then
     return
   end
 
