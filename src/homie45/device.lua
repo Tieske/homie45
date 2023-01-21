@@ -44,10 +44,10 @@ function Device.new(opts, empty)
   self.started = nil
 
   -- create patterns for message matching
-  self.DEVICE_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. self.id .. "/+")
-  self.NODE_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. self.id .. "/+/+")
-  self.PROPERTY_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. self.id .. "/+/+/+")
-  self.SET_V5_PATTERN = mqtt.compile_topic_pattern(self.domain5 .. self.id .."/+/+/set")
+  self.DEVICE_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. "/" .. self.id .. "/+")
+  self.NODE_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. "/" .. self.id .. "/+/+")
+  self.PROPERTY_MESSAGE = mqtt.compile_topic_pattern(self.domain4 .. "/" .. self.id .. "/+/+/+")
+  self.SET_V5_PATTERN = mqtt.compile_topic_pattern(self.domain5 .. "/5/" .. self.id .."/+/+/set")
 
   self.log:info("[homie45] bridged device '%s' instantiated", self.id)
   return self
@@ -60,7 +60,7 @@ end
 function Device:start()
   -- subscribe to the device topics
   self.mqtt:subscribe {
-    topic = self.domain4 .. self.id .."/#",
+    topic = self.domain4 .. "/" .. self.id .."/#",
     qos = 1,
     -- callback = function(...) -- TODO: add for error checking
     -- end,
@@ -138,7 +138,7 @@ function Device:handle_message(msg)
     return self:set_property_value(node_name, property_name, msg)
   end
 
-  self.log:warn("[homie45] '%s' don't know how to handle topic '%s'", self.domain4 .. self.id, msg.topic)
+  self.log:warn("[homie45] '%s' don't know how to handle topic '%s'", self.domain4 .. "/" .. self.id, msg.topic)
 end
 
 
@@ -175,7 +175,7 @@ end
 
 function Device:property_value_update(node_name, property_name, msg)
   self.mqtt:publish{
-    topic = self.domain5 .. self.id .. "/" .. node_name .. "/" .. property_name,
+    topic = self.domain5 .. "/5/" .. self.id .. "/" .. node_name .. "/" .. property_name,
     payload = msg.payload,
     qos = msg.qos,
     retain = msg.retain,
@@ -192,7 +192,7 @@ function Device:set_property_value(node_name, property_name, msg)
   end
 
   self.mqtt:publish{
-    topic = self.domain4 .. self.id .. "/" .. node_name .. "/" .. property_name .. "/set",
+    topic = self.domain4 .. "/" .. self.id .. "/" .. node_name .. "/" .. property_name .. "/set",
     payload = msg.payload,
     qos = msg.qos,
     retain = msg.retain,
@@ -311,7 +311,7 @@ function Device:publish()
       if property5.retained then property5.retained = nil end -- don't specify defaults
 
       if property5.settable then
-        subscriptions[#subscriptions + 1] = self.domain5 .. self.id .. "/" .. node_id .. "/" .. prop_id .. "/set"
+        subscriptions[#subscriptions + 1] = self.domain5 .. "/5/" .. self.id .. "/" .. node_id .. "/" .. prop_id .. "/set"
       end
 
       node5.properties[#node5.properties + 1] = property5
@@ -334,7 +334,7 @@ function Device:publish()
 
   -- send device updates
   self.mqtt:publish{
-    topic = self.domain5 .. self.id .. "/$description",
+    topic = self.domain5 .. "/5/" .. self.id .. "/$description",
     payload = json.encode(self.device5),
     qos = 1,
     retain = true,
@@ -342,7 +342,7 @@ function Device:publish()
       -- after confirmation, send state update
       self.description_complete = true
       self.mqtt:publish{
-        topic = self.domain5 .. self.id .. "/$state",
+        topic = self.domain5 .. "/5/" .. self.id .. "/$state",
         payload = dev4["$state"],
         qos = 1,
         retain = true,

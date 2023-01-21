@@ -24,8 +24,8 @@ local copas = require "copas"
 --- Creates a new bridge instance.
 -- @tparam table opts options table
 -- @tparam string opts.uri MQTT connection uri, eg. `mqtt://usr:pwd@mqttserver.local:1234`
--- @tparam[opt="homie/"] string opts.domain4 The homie domain for Homie v4
--- @tparam[opt="homie5/"] string opts.domain5 The homie domain for Homie v5
+-- @tparam[opt="homie"] string opts.domain4 The homie domain for Homie v4
+-- @tparam[opt="homie"] string opts.domain5 The homie domain for Homie v5
 -- @tparam[opt] string opts.id MQTT device id. Defaults to `homie45-bridge-xxxxxxx` randomized.
 -- @tparam[opt=1000] number opts.subscribe_delay Delay (milliseconds) between subscribing to
 -- discovered devices. This prevents too many topics being queued at once MQTT-server-side such
@@ -38,8 +38,8 @@ function Bridge.new(opts, empty)
 
   local self = {
     uri = opts.uri,
-    domain4 = opts.domain4 or "homie/",
-    domain5 = opts.domain5 or "homie5/",
+    domain4 = opts.domain4 or "homie",
+    domain5 = opts.domain5 or "homie",
     id = opts.id or ("homie45-bridge-%07x"):format(math.random(1, 0xFFFFFFF)),
     started = false,
     devices = nil, -- table; device-object indexed by its id
@@ -48,18 +48,18 @@ function Bridge.new(opts, empty)
     queue_worker = nil,
   }
 
-  -- ensure domains have a trailing slash
-  if self.domain4:sub(-1,-1) ~= "/" then
-    self.domain4 = self.domain4 .. "/"
+  -- ensure domains have no trailing slash
+  if self.domain4:sub(-1,-1) == "/" then
+    self.domain4 = self.domain4:sub(1,-2)
   end
-  if self.domain5:sub(-1,-1) ~= "/" then
-    self.domain5 = self.domain5 .. "/"
+  if self.domain5:sub(-1,-1) == "/" then
+    self.domain5 = self.domain5:sub(1,-2)
   end
 
   -- create patterns for message matching
-  self.DISCOVERY_PATTERN = mqtt.compile_topic_pattern(self.domain4.."+/$state")
-  self.MESSAGE_PATTERN = mqtt.compile_topic_pattern(self.domain4.."+/#")
-  self.SET_V5_PATTERN = mqtt.compile_topic_pattern(self.domain5.."+/+/+/set")
+  self.DISCOVERY_PATTERN = mqtt.compile_topic_pattern(self.domain4 .. "/+/$state")
+  self.MESSAGE_PATTERN = mqtt.compile_topic_pattern(self.domain4 .. "/+/#")
+  self.SET_V5_PATTERN = mqtt.compile_topic_pattern(self.domain5 .. "/5/+/+/+/set")
 
   self.mqtt = mqtt.client {
     uri = self.uri,
@@ -106,7 +106,7 @@ function Bridge:start()
 
       -- subscribe to the device discovery topic
       self.mqtt:subscribe {
-        topic = self.domain4 .. "+/$state",
+        topic = self.domain4 .. "/+/$state",
         qos = 1,
         -- callback = function(msg)
         -- end,

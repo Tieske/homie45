@@ -22,7 +22,7 @@
 -- export HOMIE_MQTT_URI="mqtt://synology"    # format: "mqtt(s)://user:pass@hostname:port"
 -- export HOMIE_MQTT_ID="homie45-bridge"      # default: "homie45-bridge-xxxxxxx"
 -- export HOMIE_DOMAIN4="homie"               # default: "homie"
--- export HOMIE_DOMAIN5="homie5"              # default: "homie5"
+-- export HOMIE_DOMAIN5="homie"               # default: "homie"
 -- export HOMIE_SUBSCRIBE_DELAY=5000          # default: 1000
 -- export HOMIE_LOG_LOGLEVEL="debug"          # default: "info"
 --
@@ -55,8 +55,8 @@ logger:info("starting Homie 4-to-5 bridge")
 
 local opts = {
   uri = assert(os.getenv("HOMIE_MQTT_URI"), "environment variable HOMIE_MQTT_URI not set"),
-  domain4 = os.getenv("HOMIE_DOMAIN4") or "homie/",
-  domain5 = os.getenv("HOMIE_DOMAIN5") or "homie5/",
+  domain4 = os.getenv("HOMIE_DOMAIN4") or "homie",
+  domain5 = os.getenv("HOMIE_DOMAIN5") or "homie",
   id = os.getenv("HOMIE_MQTT_ID") or ("homie45-bridge-%07x"):format(math.random(1, 0xFFFFFFF)),
   subscribe_delay = os.getenv("HOMIE_SUBSCRIBE_DELAY") or 1000,
 }
