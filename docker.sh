@@ -5,7 +5,8 @@ export HOMIE_MQTT_ID="homie45-bridge-123"
 export HOMIE_DOMAIN4="homie"
 export HOMIE_DOMAIN5="homie"
 export HOMIE_SUBSCRIBE_DELAY=10000
-export HOMIE_LOG_LOGLEVEL="info"
+export HOMIE_LOG_LOGLEVEL="debug"
+# export HOMIE_LOG_LOGLEVEL="info"
 
 
 

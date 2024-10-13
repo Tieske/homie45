@@ -1,15 +1,6 @@
-FROM akorn/luarocks:lua5.1-alpine as build
+FROM akorn/luarocks:lua5.1-alpine AS build
 
 RUN apk add make gcc libc-dev git openssl-dev
-
-
-# install dependencies separately to not have --dev versions for them as well
-RUN luarocks install copas
-RUN luarocks install luasec
-RUN luarocks install penlight
-RUN luarocks install Tieske/luamqtt --dev
-RUN luarocks install homie --dev
-RUN luarocks install luabitop
 
 # copy the local repo contents and build it
 COPY ./ /tmp/homie45

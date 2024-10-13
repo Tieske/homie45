@@ -173,7 +173,9 @@ end
 
 
 
+-- Homie-4 update received, forward to Homie-5
 function Device:property_value_update(node_name, property_name, msg)
+  self.log:debug("[homie45] forwarding '%s/%s/%s/%s' update to v5. Value '%s'", self.domain4, self.id, node_name, property_name, msg.payload)
   self.mqtt:publish{
     topic = self.domain5 .. "/5/" .. self.id .. "/" .. node_name .. "/" .. property_name,
     payload = msg.payload,
@@ -184,6 +186,7 @@ end
 
 
 
+-- Homie-5 set received, forward to Homie-4
 function Device:set_property_value(node_name, property_name, msg)
   if not msg.payload then -- clearing a topic (see below) then 'payload == nil'
     -- clearing the set topic.
@@ -191,6 +194,7 @@ function Device:set_property_value(node_name, property_name, msg)
     return
   end
 
+  self.log:debug("[homie45] returning '%s/5/%s/%s/%s/set' command to v4. Value '%s'", self.domain5, self.id, node_name, property_name, msg.payload)
   self.mqtt:publish{
     topic = self.domain4 .. "/" .. self.id .. "/" .. node_name .. "/" .. property_name .. "/set",
     payload = msg.payload,
