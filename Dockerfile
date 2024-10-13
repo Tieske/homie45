@@ -2,6 +2,11 @@ FROM akorn/luarocks:lua5.1-alpine AS build
 
 RUN apk add make gcc libc-dev git openssl-dev
 
+
+# This dependency is needed on Lua 5.1/5.2 but fails on 5.4,
+# hence install separately
+RUN luarocks install luabitop
+
 # copy the local repo contents and build it
 COPY ./ /tmp/homie45
 RUN cd /tmp/homie45 && luarocks make
