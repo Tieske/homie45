@@ -146,6 +146,18 @@ function Bridge:message_handler(msg)
   self.mqtt:acknowledge(msg)
 
   local discovery_id = msg.topic:match(self.DISCOVERY_PATTERN)
+
+  if discovery_id and not msg.payload then
+    -- device is being deleted, since $state topic is empty
+    local device = self.devices[discovery_id]
+    if device then
+      log:info("[homie45] Homie 4 device '%s' is being deleted", discovery_id)
+      device:destroy()
+      self.devices[discovery_id] = nil
+    end
+    return
+  end
+
   if discovery_id and not self.devices[discovery_id] then
     -- a discovery message ($state), of a device we don't know yet, queue it for creation
     log:info("[homie45] new Homie 4 device found: '%s'", discovery_id)

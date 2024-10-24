@@ -41,6 +41,7 @@ function Device.new(opts, empty)
   self.device5 = {} -- table representation of v5 device
   self.go_online_at = nil
   self.go_online_timer = nil
+  self.destroyed = false -- flag to indicate if the device is being destroyed
   self.started = nil
 
   -- create patterns for message matching
@@ -272,6 +273,9 @@ function Device:check_complete()
     self.go_online_timer = copas.timer.new {
       delay = GO_ONLINE_DELAY,
       callback = function(timer)
+        if self.destroyed then
+          return
+        end
         if socket.gettime() < self.go_online_at then
           -- there was an update, wait for the new delay to expire
           return timer:arm(self.go_online_at - socket.gettime())
@@ -389,6 +393,76 @@ function Device:publish()
     }
   end
 end
+
+
+
+--- Destroy a v5 device
+function Device:destroy()
+  self.destroyed = true
+  -- delete the timer if it exists
+  if self.go_online_timer then
+    self.go_online_timer:cancel()
+    self.go_online_timer = nil
+  end
+  -- delete the $state topic
+  self.mqtt:publish{
+    topic = self.domain5 .. "/5/" .. self.id .. "/$state",
+    payload = "",
+    qos = 1,
+    retain = true,
+  }
+  -- delete the device description
+  self.mqtt:publish{
+    topic = self.domain5 .. "/5/" .. self.id .. "/$description",
+    payload = "",
+    qos = 1,
+    retain = true,
+  }
+  -- delete all nodes
+  for node_id in pairs(self.device5.nodes) do
+    self:destroy_node(node_id)
+  end
+  self.log:info("[homie45] bridged v5 device '%s' destroyed", self.id)
+end
+
+
+
+--- Destroy a Node
+function Device:destroy_node(node_id)
+  local node = self:get_node(node_id)
+  for prop_id in pairs(node.properties) do
+    self:destroy_property(node_id, prop_id)
+  end
+end
+
+
+
+--- Destroy a property
+function Device:destroy_property(node_id, prop_id)
+  local topic = self.domain5 .. "/5/" .. self.id .. "/" .. node_id .. "/" .. prop_id
+  local property = self.device5.nodes[node_id].properties[prop_id]
+  if property.settable then
+    -- unsubscribe, and then clear it
+    self.mqtt:unsubscribe {
+      topic = topic .. "/set",
+    }
+    self.mqtt:publish{
+      topic = topic .. "/set",
+      payload = "",
+      qos = 1,
+      retain = true,
+    }
+  end
+
+  -- clear the value topic
+  self.mqtt:publish{
+    topic = topic,
+    payload = "",
+    qos = 1,
+    retain = true,
+  }
+end
+
 
 
 -- calling module table returns a new instance
