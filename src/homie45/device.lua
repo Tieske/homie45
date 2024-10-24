@@ -71,6 +71,8 @@ end
 
 
 
+-- Returns the node table for the given node name.
+-- If the node does not exist, it will be created (including the 'nodes' table).
 function Device:get_node(node_name)
   local nodes = self.device4.nodes
   if not nodes then
@@ -89,6 +91,8 @@ end
 
 
 
+-- Returns the property table for the given property name.
+-- If the property does not exist, it will be created (including the 'properties' table).
 function Device:get_property(node_name, property_name)
   local node = self:get_node(node_name)
   local properties = node.properties
@@ -108,23 +112,34 @@ end
 
 
 
+-- Handles incoming messages
+
 function Device:handle_message(msg)
   local topic = msg.topic
 
+  -- handle homie4 device level attributes: "/homie/[device-id]/+"
   local device_key = topic:match(self.DEVICE_MESSAGE)
+  -- TODO: if description changes and we receive "nodes" list, then we must delete node that were removed
   if device_key then
     return self:handle_device_message(device_key, msg)
   end
 
+  -- handle homie4 node level attributes: "/homie/[device-id]/[node-id]/+"
+  -- and the property value updates: "/homie/[device-id]/[node-id]/[property-id]"
   local node_name, node_key = topic:match(self.NODE_MESSAGE)
+  -- TODO: if description changes and we receive "properties" list, then we must delete node that were removed
   if node_name then
     if node_key:sub(1,1) == "$" then
+      -- Node attribute
       return self:handle_node_message(node_name, node_key, msg)
     else
+      -- Property value update
       return self:handle_property_message(node_name, node_key, PROP_VALUE_KEY, msg)
     end
   end
 
+  -- handle homie4 property level attributes: "/homie/[device-id]/[node-id]/[property-id]/+"
+  -- and property set commands: "/homie/[device-id]/[node-id]/[property-id]/set"
   local node_name, property_name, property_key = topic:match(self.PROPERTY_MESSAGE)
   if node_name then
     if property_key == "set" then
@@ -133,6 +148,7 @@ function Device:handle_message(msg)
     return self:handle_property_message(node_name, property_name, property_key, msg)
   end
 
+  -- handle homie5 property set commands: "/homie/5/[device-id]/[node-id]/[property-id]/set"
   local node_name, property_name = topic:match(self.SET_V5_PATTERN)
   if node_name then
     return self:set_property_value(node_name, property_name, msg)
@@ -143,6 +159,7 @@ end
 
 
 
+-- handle homie4 device level attributes: "/homie/[device-id]/+"
 function Device:handle_device_message(key, msg)
   self.device4[key] = msg.payload
   if key == "$state" then
@@ -228,6 +245,7 @@ function Device:check_complete()
 
   -- check individual nodes
   for _, node_name in ipairs(utils.split(nodes_string, ",")) do
+    -- TODO: if we have existing nodes, that are no longer in the nodes array, they must be deleted.
     local node = nodes[node_name]
     if not node then
       return -- incomplete; the node entry is missing
@@ -238,6 +256,7 @@ function Device:check_complete()
 
     -- check individual properties
     for _, prop_name in ipairs(utils.split(properties_string, ",")) do
+      -- TODO: if we have existing properties, that are no longer in the nodes array, they must be deleted.
       local property = properties[prop_name]
       if not property then
         return -- incomplete; the property entry is missing
@@ -270,8 +289,12 @@ function Device:publish()
   local dev4 = self.device4
   local dev5 = {
     homie = "5.0",
+    -- we use a timestamp for versioning, 0.1 secs since 24-01-2025
+    version = string.format("%.0f", (socket.gettime() - 1729779260) * 10),
     nodes = {}, -- will be removed later if it remains empty
     name = dev4["$name"] or self.id,
+    type = nil, -- always nil, since v4 devices have no type
+    -- TODO: make these child devices of the gateway device
     parent = nil, -- always nil, since v4 devices have no parents
     children = nil, -- always nil, since v4 devices have no children
     extensions = utils.split(dev4["$extensions"] or "")
@@ -289,12 +312,14 @@ function Device:publish()
   for _, node_id in ipairs(utils.split(nodes4_string, ",")) do
     local node4 = nodes4[node_id]
     local node5 = {
-      id = node_id,
       name = node4.name or node_id,
       type = node4.type,
       properties = {},
     }
-    dev5.nodes[#dev5.nodes + 1] = node5
+
+    if node5.name == node_id then node5.name = nil end -- don't specify defaults
+
+    dev5.nodes[node_id] = node5
 
     local properties4_string = node4["$properties"] or ""
     local properties4 = node4.properties or {}
@@ -303,7 +328,6 @@ function Device:publish()
     for _, prop_id in ipairs(utils.split(properties4_string, ",")) do
       local property4 = properties4[prop_id]
       local property5 = {
-        id = prop_id,
         name = property4["$name"] or prop_id,
         datatype = property4["$datatype"] or "string",
         format = property4["$format"],
@@ -311,6 +335,8 @@ function Device:publish()
         settable = property4["$settable"] == "true",
         retained = property4["$retained"] == "true",
       }
+
+      if property5.name == prop_id then property5.name = nil end -- don't specify defaults
       if not property5.settable then property5.settable = nil end -- don't specify defaults
       if property5.retained then property5.retained = nil end -- don't specify defaults
 
@@ -318,7 +344,7 @@ function Device:publish()
         subscriptions[#subscriptions + 1] = self.domain5 .. "/5/" .. self.id .. "/" .. node_id .. "/" .. prop_id .. "/set"
       end
 
-      node5.properties[#node5.properties + 1] = property5
+      node5.properties[prop_id] = property5
     end -- property loop
 
     if not next(node5.properties) then
@@ -351,6 +377,7 @@ function Device:publish()
         qos = 1,
         retain = true,
       }
+      self.log:info("[homie45] bridged v5 device '%s' announced with status: '%s'", self.id, dev4["$state"])
     end
   }
 
