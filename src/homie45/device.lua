@@ -22,6 +22,7 @@ local PROP_VALUE_KEY = "_value" -- key to use for property value updates
 -- @tparam mqtt-client opts.mqtt the mqtt client to use
 -- @tparam string opts.domain4 the Homie domain for v4
 -- @tparam string opts.domain5 the Homie domain for v5
+-- @tparam string opts.parent_id the parent device id
 -- @treturn Device the newly created instance.
 function Device.new(opts, empty)
   if empty ~= nil then error("do not call 'new' with colon-notation", 2) end
@@ -31,6 +32,7 @@ function Device.new(opts, empty)
   assert(opts.mqtt, "expected opts.mqtt to be an mqtt device instance")
   assert(opts.domain4, "expected opts.domain4 to be a string")
   assert(opts.domain5, "expected opts.domain5 to be a string")
+  assert(opts.parent_id, "expected opts.parent_id to be a string")
 
   local self = setmetatable(opts, Device)
   opts = nil -- luacheck: ignore
@@ -59,7 +61,14 @@ end
 --- Starts the device.
 -- Will subscribe to the device topics (v4) to build the description, and start.
 function Device:start()
-  -- subscribe to the device topics
+  -- tell v5 world we're alive
+  self.mqtt:publish{
+    topic = self.domain5 .. "/5/" .. self.id .. "/$state",
+    payload = "init", -- just publish "init" to tell the world we're alive, will be overwritten later
+    qos = 1,
+    retain = true,
+  }
+  -- subscribe to the device v4 topics
   self.mqtt:subscribe {
     topic = self.domain4 .. "/" .. self.id .."/#",
     qos = 1,
@@ -299,7 +308,8 @@ function Device:publish()
     name = dev4["$name"] or self.id,
     type = nil, -- always nil, since v4 devices have no type
     -- TODO: make these child devices of the gateway device
-    parent = nil, -- always nil, since v4 devices have no parents
+    root = self.parent_id,  -- set the parent device ID
+    parent = nil, -- nil, since we are a direct descendant of 'root'
     children = nil, -- always nil, since v4 devices have no children
     extensions = utils.split(dev4["$extensions"] or "")
   }

@@ -16,6 +16,7 @@ Bridge._DESCRIPTION = "Homie bridge for Homie 4 devices to Homie 5"
 Bridge.__index = Bridge
 
 local copas = require("copas") -- load first to have mqtt detect Copas as the loop
+local socket = require "socket"
 local mqtt = require "mqtt"
 local log = require("logging").defaultLogger()
 local Device = require "homie45.device"
@@ -45,6 +46,7 @@ function Bridge.new(opts, empty)
     subscribe_queue = nil,
     subscribe_delay = (opts.subscribe_delay or 1000)/1000,
     queue_worker = nil,
+    device_id = "homie45-bridge",
   }
 
   -- ensure domains have no trailing slash
@@ -65,12 +67,12 @@ function Bridge.new(opts, empty)
     id = self.id,
     clean = true, -- set to false after first connection
     reconnect = true,
-    -- will = {
-    --   topic = self.base_topic .. "$state",
-    --   payload = self.states.lost,
-    --   qos = 1,
-    --   retain = true,
-    -- }
+    will = {
+      topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
+      payload = "lost",
+      qos = 1,
+      retain = true,
+    }
   }
 
   return setmetatable(self, Bridge)
@@ -84,8 +86,14 @@ function Bridge:start()
     return nil, "already started"
   end
 
-  self.clean = true -- restart should be clean
   self.devices = {} -- clean device list
+  self.description_changed = true
+  self.description = {
+    name = "Homie v4 to v5 bridge",
+    homie = "5.0",
+    version = nil, -- will be set on publishing
+    children = {}
+  }
   log:info("[homie45] starting mqtt client '%s'", self.id)
 
   local queue = copas.queue.new { name = "subscribe_queue_" .. self.id }
@@ -95,6 +103,10 @@ function Bridge:start()
     -- one queue worker, so just sleeping will do.
     copas.pause(self.subscribe_delay)
     self.devices[device_id]:start() -- start the device
+    -- add device to our child list
+    self.description.children[#self.description.children + 1] = device_id
+    self.description_changed = true
+    self:updateDescription()
   end)
 
   self.mqtt:on {
@@ -110,8 +122,7 @@ function Bridge:start()
         -- callback = function(msg)
         -- end,
       }
-
-      self.clean = false -- reconnects should continue and no longer be clean
+      return self:updateDescription()
     end,
 
     message = function(msg)
@@ -119,10 +130,51 @@ function Bridge:start()
     end,
   }
 
-  self.mqtt.opts.clean = self.clean
+  self.mqtt.opts.clean = "first" -- only start clean on first connect, not reconnects
   require("mqtt.loop").add(self.mqtt)
 
   return true
+end
+
+
+
+function Bridge:updateDescription()
+  if not self.description_changed then
+    return
+  end
+
+  -- set state to "init", because we're updating our description
+  self.mqtt:publish {
+    topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
+    payload = "init",
+    qos = 1,
+    retain = true,
+  }
+
+  -- TODO: implement timer to delay sending the description, to prevent overloading controllers having to many updates
+
+  -- assign a new version number (epoch time in 0.1 seconds since oct 2024)
+  self.description.version = string.format("%.0f", (socket.gettime() - 1729779260) * 10)
+  local payload = require("cjson").encode(self.description)
+
+  -- publish description
+  self.description_changed = false  -- before publishing, since publishing might yield!!
+  self.mqtt:publish {
+    topic = self.domain5 .. "/5/" .. self.device_id .. "/$description",
+    payload = payload,
+    qos = 1,
+    retain = true,
+  }
+
+  copas.pause(0.2) -- wait a bit for the description to be processed
+
+  -- set state to "ready"
+  self.mqtt:publish {
+    topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
+    payload = "ready",
+    qos = 1,
+    retain = true,
+  }
 end
 
 
@@ -152,6 +204,14 @@ function Bridge:message_handler(msg)
     local device = self.devices[discovery_id]
     if device then
       log:info("[homie45] Homie 4 device '%s' is being deleted", discovery_id)
+      for i, child_id in ipairs(device.description.children) do
+        if child_id == discovery_id then
+          table.remove(device.description.children) -- remove device from our child list
+          self.description_changed = true
+          break
+        end
+      end
+      self:updateDescription()
       device:destroy()
       self.devices[discovery_id] = nil
     end
@@ -167,6 +227,7 @@ function Bridge:message_handler(msg)
       log = log,
       domain4 = self.domain4,
       domain5 = self.domain5,
+      parent_id = self.device_id,
     }
     self.subscribe_queue:push(discovery_id) -- queue it for starting
   end
@@ -182,7 +243,7 @@ function Bridge:message_handler(msg)
 
   local device = self.devices[device_id]
   if not device then
-    log:warn("[homie45] received message for unknown device id: '%s'", device)
+    log:warn("[homie45] received message for unknown device id: '%s'", device_id)
     return
   end
 
