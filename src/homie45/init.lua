@@ -45,6 +45,7 @@ function Bridge.new(opts, empty)
     devices = nil, -- table; device-object indexed by its id
     subscribe_queue = nil,
     subscribe_delay = (opts.subscribe_delay or 1000)/1000,
+    desc_update_delay = (opts.subscribe_delay or 1000)/1000 + 0.5, -- delay for description update
     queue_worker = nil,
     device_id = "homie45-bridge",
   }
@@ -143,6 +144,10 @@ function Bridge:updateDescription()
     return
   end
 
+  -- post description delayed, to catch multiple updates in one go
+  log:info("[homie45] initiating root-device description update (if stable for %.1f seconds)", self.desc_update_delay)
+  self.descriptionPostTime = socket.gettime() + self.desc_update_delay
+
   -- set state to "init", because we're updating our description
   self.mqtt:publish {
     topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
@@ -151,10 +156,43 @@ function Bridge:updateDescription()
     retain = true,
   }
 
-  -- TODO: implement timer to delay sending the description, to prevent overloading controllers having to many updates
+  if not self.descriptionPostTimer then
+    -- create a new timer, since we do not have one yet
+    self.descriptionPostTimer = copas.timer.new {
+      delay = self.desc_update_delay,
+      callback = function()
+        -- if postTime was updated, then reschedule timer
+        if self.descriptionPostTime > socket.gettime() then
+          self.descriptionPostTimer:arm(self.descriptionPostTime - socket.gettime()) -- postpone execution
+          return
+        end
+        -- we're up, execute it
+        self.descriptionPostTimer = nil
+        self.descriptionPostTime = nil
+        self:postDescription()
+      end
+    }
+  end
+end
 
-  -- assign a new version number (epoch time in 0.1 seconds since oct 2024)
-  self.description.version = string.format("%.0f", (socket.gettime() - 1729779260) * 10)
+
+
+function Bridge:updateVersion()
+  local v = tonumber(self.description.version)
+  if not v then
+    local b1, b2 = string.byte(require("system").random(2), 1, 2)
+    v = b1 * 256 + b2
+  else
+    v = (v + 1) % 65536
+  end
+  self.description.version = string.format("%d", v)
+end
+
+
+
+-- Unconditionally posts the device description, and sets state to Ready.
+function Bridge:postDescription()
+  self:updateVersion()
   local payload = require("cjson").encode(self.description)
 
   -- publish description
@@ -166,7 +204,8 @@ function Bridge:updateDescription()
     retain = true,
   }
 
-  copas.pause(0.2) -- wait a bit for the description to be processed
+  log:info("[homie45] root-device '%s' description update posted, version %s",
+            self.device_id, self.description.version)
 
   -- set state to "ready"
   self.mqtt:publish {

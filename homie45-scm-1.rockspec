@@ -31,6 +31,7 @@ dependencies = {
   "lualogging >= 1.6",
   "penlight ~> 1",
   "lua-cjson",
+  "luasystem >= 0.3",
 }
 
 build = {
