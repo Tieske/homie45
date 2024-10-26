@@ -18,6 +18,13 @@
 - test the newly created rock:<br/>
   `luarocks install homie45`
 
+### unreleased
+
+- fix: update node and property lists from arrays to objects
+- feat: homie 4 devices deleted, are now also deleted on v5
+- feat: the bridge is now a root device, and the bridged-devices are now children such that
+  the overall status is reflected properly and the LWT for the root device works.
+
 ### Version 0.2.0, released 13-Oct-2024
 
 - a fix to rate-limit subscriptions to prevent queue overrunning
