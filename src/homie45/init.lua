@@ -10,7 +10,7 @@
 -- @license MIT, see `LICENSE.md`.
 
 local Bridge = {}
-Bridge._VERSION = "0.2.0"
+Bridge._VERSION = "0.3.0"
 Bridge._COPYRIGHT = "Copyright (c) 2023-2024 Thijs Schreijer"
 Bridge._DESCRIPTION = "Homie bridge for Homie 4 devices to Homie 5"
 Bridge.__index = Bridge

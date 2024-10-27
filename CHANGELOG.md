@@ -18,7 +18,7 @@
 - test the newly created rock:<br/>
   `luarocks install homie45`
 
-### unreleased
+### Version 0.3.0, released 27-Oct-2024
 
 - fix: update node and property lists from arrays to objects
 - feat: homie 4 devices deleted, are now also deleted on v5
