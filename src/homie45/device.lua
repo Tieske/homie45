@@ -297,7 +297,7 @@ function Device:check_complete()
 end
 
 
---- Build and publish the v5 device
+-- Build and publish the v5 device
 function Device:publish()
   local dev4 = self.device4
   local dev5 = {
@@ -406,7 +406,7 @@ end
 
 
 
---- Destroy a v5 device
+-- Destroy a v5 device
 function Device:destroy()
   self.destroyed = true
   -- delete the timer if it exists
@@ -437,7 +437,7 @@ end
 
 
 
---- Destroy a Node
+-- Destroy a Node
 function Device:destroy_node(node_id)
   local node = self:get_node(node_id)
   for prop_id in pairs(node.properties) do
@@ -447,7 +447,7 @@ end
 
 
 
---- Destroy a property
+-- Destroy a property
 function Device:destroy_property(node_id, prop_id)
   local topic = self.domain5 .. "/5/" .. self.id .. "/" .. node_id .. "/" .. prop_id
   local property = self.device5.nodes[node_id].properties[prop_id]

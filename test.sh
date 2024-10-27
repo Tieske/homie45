@@ -13,7 +13,7 @@ export HOMIE_LOG_MAXSIZE="8000"
 export HOMIE_LOG_HOSTNAME="synology.local"
 export HOMIE_LOG_PORT="8514"
 export HOMIE_LOG_PROTOCOL="tcp"
-export HOMIE_LOG_IDENT="homienetatmo"
+export HOMIE_LOG_IDENT="homie45bridge"
 
 
 LUA_PATH="./src/?/init.lua;./src/?.lua;$LUA_PATH"
