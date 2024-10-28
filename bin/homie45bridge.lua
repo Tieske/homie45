@@ -21,6 +21,7 @@
 -- # configure parameters as environment variables
 -- export HOMIE_MQTT_URI="mqtt://synology"    # format: "mqtt(s)://user:pass@hostname:port"
 -- export HOMIE_MQTT_ID="homie45-bridge"      # default: "homie45-bridge-xxxxxxx"
+-- export HOMIE_DEVICE_ID="homie45-bridge"    # default: "homie45-bridge-xxxxxxx"
 -- export HOMIE_DOMAIN4="homie"               # default: "homie"
 -- export HOMIE_DOMAIN5="homie"               # default: "homie"
 -- export HOMIE_SUBSCRIBE_DELAY=5000          # default: 1000
@@ -59,6 +60,7 @@ local opts = {
   domain5 = os.getenv("HOMIE_DOMAIN5") or "homie",
   id = os.getenv("HOMIE_MQTT_ID") or ("homie45-bridge-%07x"):format(math.random(1, 0xFFFFFFF)),
   subscribe_delay = os.getenv("HOMIE_SUBSCRIBE_DELAY") or 1000,
+  device_id = os.getenv("HOMIE_DEVICE_ID") or ("homie45bridge-%07x"):format(math.random(1, 0xFFFFFFF)),
 }
 
 logger:info("Bridge configuration:")
@@ -66,6 +68,7 @@ logger:info("HOMIE_MQTT_URI: %s", opts.uri)
 logger:info("HOMIE_DOMAIN4: %s", opts.domain4)
 logger:info("HOMIE_DOMAIN5: %s", opts.domain5)
 logger:info("HOMIE_MQTT_ID: %s", opts.id)
+logger:info("HOMIE_DEVICE_ID: %s", opts.device_id)
 logger:info("HOMIE_SUBSCRIBE_DELAY: %s", tostring(opts.subscribe_delay))
 
 

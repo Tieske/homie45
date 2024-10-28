@@ -27,6 +27,7 @@ local Device = require "homie45.device"
 -- @tparam[opt="homie"] string opts.domain4 The homie domain for Homie v4
 -- @tparam[opt="homie"] string opts.domain5 The homie domain for Homie v5
 -- @tparam[opt] string opts.id MQTT device id. Defaults to `homie45-bridge-xxxxxxx` randomized.
+-- @tparam[opt="homie45bridge"] string opts.device_id The device id for the root device.
 -- @tparam[opt=1000] number opts.subscribe_delay Delay (milliseconds) between subscribing to
 -- discovered devices. This prevents too many topics being queued at once MQTT-server-side such
 -- that they might get dropped.
@@ -47,7 +48,7 @@ function Bridge.new(opts, empty)
     subscribe_delay = (opts.subscribe_delay or 1000)/1000,
     desc_update_delay = (opts.subscribe_delay or 1000)/1000 + 0.5, -- delay for description update
     queue_worker = nil,
-    device_id = "homie45-bridge",
+    device_id = opts.device_id or "homie45bridge",
   }
 
   -- ensure domains have no trailing slash
@@ -241,7 +242,7 @@ function Bridge:message_handler(msg)
   if discovery_id and not msg.payload then
     -- device is being deleted, since $state topic is empty
     local device = self.devices[discovery_id]
-    if device then
+    if device and device.description then
       log:info("[homie45] Homie 4 device '%s' is being deleted", discovery_id)
       for i, child_id in ipairs(device.description.children) do
         if child_id == discovery_id then

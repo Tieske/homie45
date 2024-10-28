@@ -18,6 +18,10 @@
 - test the newly created rock:<br/>
   `luarocks install homie45`
 
+### unreleased
+
+- feat: make the Homie device id configurable
+
 ### Version 0.3.0, released 27-Oct-2024
 
 - fix: update node and property lists from arrays to objects
