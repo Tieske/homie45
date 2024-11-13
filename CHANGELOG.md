@@ -21,6 +21,8 @@
 ### unreleased
 
 - feat: make the Homie device id configurable
+- fix: upon a reconnect the bridge itself would not re-publish the $state, which
+  would leave the device at "lost", which also applied to all children
 
 ### Version 0.3.0, released 27-Oct-2024
 
