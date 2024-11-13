@@ -49,6 +49,7 @@ function Bridge.new(opts, empty)
     desc_update_delay = (opts.subscribe_delay or 1000)/1000 + 0.5, -- delay for description update
     queue_worker = nil,
     device_id = opts.device_id or "homie45bridge",
+    state = "init", -- state of the bridge device itself
   }
 
   -- ensure domains have no trailing slash
@@ -124,7 +125,12 @@ function Bridge:start()
         -- callback = function(msg)
         -- end,
       }
-      return self:updateDescription()
+
+      if self.description_changed then
+        self:updateDescription()  -- will also set state
+      else
+        self:setState(self.state)  -- in case of reconnect ensure we overwrite the LWT value with the current state
+      end
     end,
 
     message = function(msg)
@@ -138,6 +144,15 @@ function Bridge:start()
   return true
 end
 
+function Bridge:setState(state)
+  self.state = state
+  self.mqtt:publish {
+    topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
+    payload = state,
+    qos = 1,
+    retain = true,
+  }
+end
 
 
 function Bridge:updateDescription()
@@ -150,12 +165,7 @@ function Bridge:updateDescription()
   self.descriptionPostTime = socket.gettime() + self.desc_update_delay
 
   -- set state to "init", because we're updating our description
-  self.mqtt:publish {
-    topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
-    payload = "init",
-    qos = 1,
-    retain = true,
-  }
+  self:setState("init")
 
   if not self.descriptionPostTimer then
     -- create a new timer, since we do not have one yet
@@ -209,12 +219,7 @@ function Bridge:postDescription()
             self.device_id, self.description.version)
 
   -- set state to "ready"
-  self.mqtt:publish {
-    topic = self.domain5 .. "/5/" .. self.device_id .. "/$state",
-    payload = "ready",
-    qos = 1,
-    retain = true,
-  }
+  self:setState("ready")
 end
 
 
