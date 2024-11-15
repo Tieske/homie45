@@ -10,7 +10,7 @@
 -- @license MIT, see `LICENSE.md`.
 
 local Bridge = {}
-Bridge._VERSION = "0.3.0"
+Bridge._VERSION = "0.4.0"
 Bridge._COPYRIGHT = "Copyright (c) 2023-2024 Thijs Schreijer"
 Bridge._DESCRIPTION = "Homie bridge for Homie 4 devices to Homie 5"
 Bridge.__index = Bridge
@@ -92,7 +92,7 @@ function Bridge:start()
   self.devices = {} -- clean device list
   self.description_changed = true
   self.description = {
-    name = "Homie v4 to v5 bridge",
+    name = "Homie v4 to v5 bridge v" .. self._VERSION,
     homie = "5.0",
     version = nil, -- will be set on publishing
     children = {}
