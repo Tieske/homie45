@@ -18,7 +18,7 @@
 - test the newly created rock:<br/>
   `luarocks install homie45`
 
-### unreleased
+### Version 0.4.0, released 15-Nov-2024
 
 - feat: make the Homie device id configurable
 - fix: upon a reconnect the bridge itself would not re-publish the $state, which
