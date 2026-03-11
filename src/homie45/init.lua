@@ -5,12 +5,12 @@
 -- not start the scheduler.
 --
 -- @classmod Bridge
--- @copyright Copyright (c) 2023-2024 Thijs Schreijer
+-- @copyright Copyright (c) 2023-2026 Thijs Schreijer
 -- @author Thijs Schreijer
 -- @license MIT, see `LICENSE.md`.
 
 local Bridge = {}
-Bridge._VERSION = "0.4.0"
+Bridge._VERSION = "0.5.0"
 Bridge._COPYRIGHT = "Copyright (c) 2023-2024 Thijs Schreijer"
 Bridge._DESCRIPTION = "Homie bridge for Homie 4 devices to Homie 5"
 Bridge.__index = Bridge

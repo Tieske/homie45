@@ -24,7 +24,7 @@ description = {
 }
 
 dependencies = {
-  "lua >= 5.1, < 5.5",
+  "lua >= 5.1, < 5.6",
   "copas >= 4.3, < 5",
   -- "luabitop", -- this fails on Lua 5.4
   "luamqttt",

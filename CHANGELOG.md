@@ -18,6 +18,10 @@
 - test the newly created rock:<br/>
   `luarocks install homie45`
 
+### Version 0.5.0, released 11-Mar-2026
+
+- fix: a racecondition during discovery
+
 ### Version 0.4.0, released 15-Nov-2024
 
 - feat: make the Homie device id configurable
