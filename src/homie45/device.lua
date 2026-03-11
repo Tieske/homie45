@@ -40,6 +40,7 @@ function Device.new(opts, empty)
   -- structure to store received data
   self.device4 = {}
   self.description_complete = false
+  self.data_ready = false -- true when all nodes/properties are present
   self.device5 = {} -- table representation of v5 device
   self.go_online_at = nil
   self.go_online_timer = nil
@@ -137,7 +138,7 @@ function Device:handle_message(msg)
   -- handle homie4 node level attributes: "/homie/[device-id]/[node-id]/+"
   -- and the property value updates: "/homie/[device-id]/[node-id]/[property-id]"
   local node_name, node_key = topic:match(self.NODE_MESSAGE)
-  -- TODO: if description changes and we receive "properties" list, then we must delete node that were removed
+  -- TODO: if description changes and we receive "properties" list, then we must delete properties that were removed
   if node_name then
     if node_key:sub(1,1) == "$" then
       -- Node attribute
@@ -172,9 +173,7 @@ end
 -- handle homie4 device level attributes: "/homie/[device-id]/+"
 function Device:handle_device_message(key, msg)
   self.device4[key] = msg.payload
-  if key == "$state" then
-    self:check_complete()
-  end
+  self:check_complete()
 end
 
 
@@ -258,6 +257,8 @@ function Device:check_complete()
     -- TODO: if we have existing nodes, that are no longer in the nodes array, they must be deleted.
     local node = nodes[node_name]
     if not node then
+      self.data_ready = false
+      self.go_online_at = socket.gettime() + GO_ONLINE_DELAY  -- push timer back; data still arriving
       return -- incomplete; the node entry is missing
     end
 
@@ -269,6 +270,8 @@ function Device:check_complete()
       -- TODO: if we have existing properties, that are no longer in the nodes array, they must be deleted.
       local property = properties[prop_name]
       if not property then
+        self.data_ready = false
+        self.go_online_at = socket.gettime() + GO_ONLINE_DELAY  -- push timer back; data still arriving
         return -- incomplete; the property entry is missing
       end
 
@@ -277,6 +280,7 @@ function Device:check_complete()
   end -- node loop
 
   -- looks pretty complete, but not 100% sure, wait for extra delay
+  self.data_ready = true
   self.go_online_at = socket.gettime() + GO_ONLINE_DELAY
   if not self.go_online_timer then
     self.go_online_timer = copas.timer.new {
@@ -288,6 +292,10 @@ function Device:check_complete()
         if socket.gettime() < self.go_online_at then
           -- there was an update, wait for the new delay to expire
           return timer:arm(self.go_online_at - socket.gettime())
+        end
+        if not self.data_ready then
+          -- data became incomplete after timer was started (e.g. $nodes updated); keep waiting
+          return timer:arm(GO_ONLINE_DELAY)
         end
 
         self:publish()
@@ -307,7 +315,6 @@ function Device:publish()
     nodes = {}, -- will be removed later if it remains empty
     name = dev4["$name"] or self.id,
     type = nil, -- always nil, since v4 devices have no type
-    -- TODO: make these child devices of the gateway device
     root = self.parent_id,  -- set the parent device ID
     parent = nil, -- nil, since we are a direct descendant of 'root'
     children = nil, -- always nil, since v4 devices have no children
@@ -325,6 +332,9 @@ function Device:publish()
   -- build individual nodes
   for _, node_id in ipairs(utils.split(nodes4_string, ",")) do
     local node4 = nodes4[node_id]
+    if not node4 then
+      self.log:warn("[homie45] node '%s' not found in device '%s'", node_id, self.id)
+    end
     local node5 = {
       name = node4.name or node_id,
       type = node4.type,

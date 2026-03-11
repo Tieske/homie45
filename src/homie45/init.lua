@@ -242,7 +242,10 @@ end
 function Bridge:message_handler(msg)
   self.mqtt:acknowledge(msg)
 
+  -- DISCOVERY is the $state topic of a device; 'homie/[ID]/$state'
   local discovery_id = msg.topic:match(self.DISCOVERY_PATTERN)
+  -- DEVICE is any device related topic; 'homie/[ID]/#' also matches the $state topic
+  local device_id = msg.topic:match(self.MESSAGE_PATTERN)
 
   if discovery_id and not msg.payload then
     -- device is being deleted, since $state topic is empty
@@ -263,9 +266,15 @@ function Bridge:message_handler(msg)
     return
   end
 
+  if device_id and (not discovery_id) and (not self.devices[discovery_id]) then
+    -- a message of a device we don't know yet, race condition, so create device anyway by
+    -- setting a discovery id
+    discovery_id = device_id
+  end
+
   if discovery_id and not self.devices[discovery_id] then
     -- a discovery message ($state), of a device we don't know yet, queue it for creation
-    log:info("[homie45] new Homie 4 device found: '%s'", discovery_id)
+    log:info("[homie45] new Homie 4 device found: '%s' (packet %s)", discovery_id, msg.packet_id or "n.a.")
     self.devices[discovery_id] = Device.new {
       id = discovery_id,
       mqtt = self.mqtt,
@@ -277,13 +286,12 @@ function Bridge:message_handler(msg)
     self.subscribe_queue:push(discovery_id) -- queue it for starting
   end
 
-  local device_id = msg.topic:match(self.MESSAGE_PATTERN)
   if not device_id then
     device_id = msg.topic:match(self.SET_V5_PATTERN)
-  end
-  if not device_id then
-    log:warn("[homie45] received unknown topic: '%s'", msg.topic)
-    return
+    if not device_id then
+      log:warn("[homie45] received unknown topic: '%s'", msg.topic)
+      return
+    end
   end
 
   local device = self.devices[device_id]
